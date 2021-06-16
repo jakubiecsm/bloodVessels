@@ -26,17 +26,21 @@ def normalize(image, size):
     return image
 
 
-def background_cut_off(image, cut_off):
-    return image > np.mean(image) + cut_off/10 * np.std(image)
+def background_cut_off(image):
+    return image > np.mean(image) + 1.5 * np.std(image)
 
 
-def process_image(image, cut_off, selem_size=9, convolve_size=14):
+def process_image(image, cut_off=False, selem_size=9, convolve_size=14):
     image = normalize(convert_to_gray(extract_green(image)), selem_size)
     K = ones([convolve_size, convolve_size])
     K = K / sum(K)
     image = convolve(image, K)
     p_low, p_high = np.percentile(image, (5, 95))
     image = exposure.rescale_intensity(image, in_range=(p_low, p_high))
-    # return frangi(convolve(image, K))
-    return background_cut_off(frangi(convolve(image, K)), cut_off)
+    image = convolve(frangi(convolve(image, K)), K)
+
+    if cut_off:
+        return background_cut_off(image)
+
+    return image
 

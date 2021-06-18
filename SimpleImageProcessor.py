@@ -9,38 +9,49 @@ from skimage.morphology import disk
 from skimage.filters import frangi
 
 
-def extract_green(image):
-    green_image = image.copy()
-    green_image[:, :, 0] = 0
-    green_image[:, :, 2] = 0
-    return green_image
+class SimpleImageProcessor:
 
+    def __init__(self, base_image):
+        self.base_image = base_image
+        self.green_image = None
+        self.gray_image = None
+        self.normalized_image = None
+        self.rescaled_image = None
+        self.frangied_image = None
+        self.binary_image = None
 
-def convert_to_gray(image):
-    return skimage.color.rgb2gray(image)
+    def extract_green(self):
+        self.green_image = self.base_image.copy()
+        self.green_image[:, :, 0] = 0
+        self.green_image[:, :, 2] = 0
 
+    def convert_to_gray(self):
+        self.gray_image = skimage.color.rgb2gray(self.green_image.copy())
 
-def normalize(image, size):
-    image = exposure.equalize_hist(image)
-    image = rank.equalize(image, selem=disk(size))
-    return image
+    def normalize(self):
+        self.normalized_image = exposure.equalize_hist(self.gray_image.copy())
+        self.normalized_image = rank.equalize(self.normalized_image, selem=disk(9))
 
+    def rescale_intensity(self):
+        K = ones([14, 14])
+        K = K / sum(K)
+        image = convolve(self.normalized_image, K)
+        p_low, p_high = np.percentile(image, (5, 95))
+        image = exposure.rescale_intensity(image, in_range=(p_low, p_high))
+        self.rescaled_image = convolve(image, K)
 
-def background_cut_off(image):
-    return image > np.mean(image) + 1.5 * np.std(image)
+    def frangi_filter(self):
+        K = ones([14, 14])
+        K = K / sum(K)
+        self.frangied_image = convolve(frangi(self.rescaled_image), K)
 
+    def background_cut_off(self):
+        self.binary_image = self.frangied_image > np.mean(self.frangied_image) + 1.5 * np.std(self.frangied_image)
 
-def process_image(image, cut_off=False, selem_size=9, convolve_size=14):
-    image = normalize(convert_to_gray(extract_green(image)), selem_size)
-    K = ones([convolve_size, convolve_size])
-    K = K / sum(K)
-    image = convolve(image, K)
-    p_low, p_high = np.percentile(image, (5, 95))
-    image = exposure.rescale_intensity(image, in_range=(p_low, p_high))
-    image = convolve(frangi(convolve(image, K)), K)
-
-    if cut_off:
-        return background_cut_off(image)
-
-    return image
-
+    def process_image(self):
+        self.extract_green()
+        self.convert_to_gray()
+        self.normalize()
+        self.rescale_intensity()
+        self.frangi_filter()
+        self.background_cut_off()

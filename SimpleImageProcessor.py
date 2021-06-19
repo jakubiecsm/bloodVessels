@@ -11,14 +11,17 @@ from skimage.filters import frangi
 
 class SimpleImageProcessor:
 
-    def __init__(self, base_image):
-        self.base_image = base_image
+    def __init__(self):
+        self.base_image = None
         self.green_image = None
         self.gray_image = None
         self.normalized_image = None
         self.rescaled_image = None
         self.frangied_image = None
         self.binary_image = None
+
+    def load_base_image(self, base_image):
+        self.base_image = base_image
 
     def extract_green(self):
         self.green_image = self.base_image.copy()
@@ -30,7 +33,7 @@ class SimpleImageProcessor:
 
     def normalize(self):
         self.normalized_image = exposure.equalize_hist(self.gray_image.copy())
-        self.normalized_image = rank.equalize(self.normalized_image, selem=disk(9))
+        self.normalized_image = rank.equalize(skimage.util.img_as_ubyte(self.normalized_image), selem=disk(9))
 
     def rescale_intensity(self):
         K = ones([14, 14])

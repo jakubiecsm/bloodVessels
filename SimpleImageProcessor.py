@@ -1,4 +1,5 @@
 from numpy.matlib import ones
+from pylab import *
 import skimage
 from skimage import exposure
 from skimage.filters import rank

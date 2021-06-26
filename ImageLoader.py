@@ -1,8 +1,6 @@
 from PIL import Image
 import glob
-import cv2
 from skimage import io
-
 
 class ImageLoader:
     def __init__(self):
